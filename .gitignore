@@ -1,0 +1,15 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+#directory
+cam_video/
+evaluated_csv/
+evaluated_videos/
+
+# Virtual environments
+.venv

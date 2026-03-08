@@ -1,0 +1,27 @@
+[project]
+name = "dcrsystem-5goki-pc-app"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "hidapi>=0.15.0",
+    "opencv-python>=4.13.0.92",
+    "pyinstaller>=6.19.0",
+    "pypylon>=26.2.1",
+    "pyside6>=6.10.2",
+    "torch>=2.6.0",
+    "torchaudio>=2.6.0",
+    "torchvision>=0.21.0",
+    "ultralytics>=8.4.21",
+]
+
+[[tool.uv.index]]
+name = "pytorch-cuda"
+url = "https://download.pytorch.org/whl/cu124"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cuda" }
+torchvision = { index = "pytorch-cuda" }
+torchaudio = { index = "pytorch-cuda" }
