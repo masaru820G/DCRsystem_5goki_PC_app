@@ -49,54 +49,15 @@ def setup_folders():
 # PFSファイルを正確に読み込むための補助関数
 # ==========================================================
 def load_pfs_custom(camera, pfs_path):
-    """
-    {Selector=Value} 形式を含むPFSファイルを解析し、
-    セレクタを切り替えてから値を設定するロジック
-    """
     if not os.path.exists(pfs_path):
         return False
         
-    nodemap = camera.GetNodeMap()
-    
-    # 正規表現: FeatureName {SelectorName=SelectorValue} Value
-    pattern_with_selector = re.compile(r'^(\w+)\s+\{(\w+)=(\w+)\}\s+(.+)$')
-    # 正規表現: FeatureName Value
-    pattern_simple = re.compile(r'^(\w+)\s+(.+)$')
-
-    with open(pfs_path, 'r', encoding='utf-8') as f:
-        for line in f:
-            line = line.strip()
-            if not line or line.startswith('#') or line.startswith('['):
-                continue
-            
-            try:
-                # 1. セレクタ付き形式のチェック
-                match_sel = pattern_with_selector.match(line)
-                if match_sel:
-                    feature, selector_name, selector_val, value = match_sel.groups()
-                    
-                    # セレクタ（GainSelector, BalanceRatioSelector等）を先に設定
-                    sel_node = nodemap.GetNode(selector_name)
-                    if sel_node:
-                        sel_node.FromString(selector_val)
-                    
-                    # その後に値を設定
-                    feat_node = nodemap.GetNode(feature)
-                    if feat_node:
-                        feat_node.FromString(value)
-                    continue
-
-                # 2. 通常形式のチェック
-                match_simple = pattern_simple.match(line)
-                if match_simple:
-                    feature, value = match_simple.groups()
-                    feat_node = nodemap.GetNode(feature)
-                    if feat_node and pylon.IsWritable(feat_node):
-                        feat_node.FromString(value)
-
-            except Exception:
-                continue # 読み取り専用ノードなどはスキップ
-    return True
+    try:
+        pylon.FeaturePersistence.Load(pfs_path, camera.GetNodeMap(), True)        # pylon公式のPFSロード機能
+        return True
+    except Exception as e:
+        print(f"!! PFSロードエラー ({pfs_path}): {e}")
+        return False
 
 # ==========================================================
 # カメラ制御クラス（色再現改善版）
@@ -106,7 +67,7 @@ class CameraController:
         self.device_info = device_info
         self.save_path = save_path
         self.name = cam_name
-        self.settings_file = f"cam_pfs{self.name}.pfs"
+        self.settings_file = f"cam_pfs/{self.name}.pfs"
 
         self.camera = None
         self.video_writer = None
@@ -135,8 +96,16 @@ class CameraController:
             
             # --- カスタムPFSロード ---
             if os.path.exists(self.settings_file):
-                load_pfs_custom(self.camera, self.settings_file)
-                print(f"[Success] {self.name}: 設定を精密に適用しました")
+                success = load_pfs_custom(self.camera, self.settings_file)
+                if success:
+                    print(f"[Success] {self.name}: 設定を精密に適用しました")
+                else:
+                    print(f"!!エラー!! {self.name}: ファイルはありますが、中身の解析に失敗しました ({self.settings_file})")
+            else:
+                # ファイルが存在しない場合、絶対パスを表示して原因を探る
+                abs_path = os.path.abspath(self.settings_file)
+                print(f"!!警告!! {self.name}: 設定ファイルが見つかりません。")
+                print(f"探している場所: {abs_path}")
             
             # 設定後の解像度を取得
             self.width = self.camera.Width.Value

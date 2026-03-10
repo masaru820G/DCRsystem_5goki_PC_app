@@ -9,21 +9,20 @@ from ultralytics import YOLO
 # 定数定義
 # ==========================================================
 # 動作設定
-USE_CROP = True                 # ダイナミッククロップを使用するか
-CENTER_THRESHOLD_X = 50          # クロップを発動する中心からの許容ピクセル幅
+USE_CROP = False                # ダイナミッククロップを使用するか
+CENTER_THRESHOLD_X = 100          # クロップを発動する中心からの許容ピクセル幅
 
 # YOLO設定
 MODEL_PATH = "Trained_Models/best.pt"
-YOLO_IMG_SIZE = 320             # 推論およびアノテーション画像のサイズ
-CONF_THRESHOLD = 0.5            # 推論の信頼度閾値
+YOLO_IMG_SIZE = 640             # 推論およびアノテーション画像のサイズ
+CONF_THRESHOLD = 0.6            # 推論の信頼度閾値
 
 # 保存設定
-SAVE_DIR_VIDEO = "evaluated_videos" # タイル動画の保存先
-SAVE_DIR_CSV = "evaluated_csv"     # CSVの保存先
-FPS = 10.0                      # 保存動画のFPS（実測に合わせて調整してください）
-
-# ★追加：4分割画面のサイズ
-TILE_VIDEO_SIZE = (YOLO_IMG_SIZE * 2, YOLO_IMG_SIZE * 2) # (横, 縦)
+SAVE_DIR_VIDEO = "evaluated_videos"                 # タイル動画の保存先
+SAVE_DIR_CSV = "evaluated_csv"                      # CSVの保存先
+SAVE_DIR_IMG = "evaluated_images"                   # ★新規追加: 画像の保存先親フォルダ
+FPS = 20.0                                          # 保存動画のFPS
+TILE_VIDEO_SIZE = (YOLO_IMG_SIZE, YOLO_IMG_SIZE)    # (横, 縦)
 
 # ==========================================================
 # 判定結果データクラス
@@ -44,6 +43,14 @@ class OutputLogger:
     def __init__(self):
         os.makedirs(SAVE_DIR_VIDEO, exist_ok=True)
         os.makedirs(SAVE_DIR_CSV, exist_ok=True)
+
+        # ★新規追加: カメラごとの画像保存フォルダ作成
+        self.img_dirs = {}
+        cam_names = ['cam_top', 'cam_under', 'cam_inside', 'cam_outside']
+        for cam in cam_names:
+            path = os.path.join(SAVE_DIR_IMG, cam)
+            os.makedirs(path, exist_ok=True)
+            self.img_dirs[cam] = path
         
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         self.video_path = os.path.join(SAVE_DIR_VIDEO, f"eval_{timestamp}.mp4")
@@ -53,12 +60,11 @@ class OutputLogger:
         self._init_csv()
 
     def _init_video(self):
-        """動画ライターを★TILE_VIDEO_SIZEで初期化"""
+        # 動画ライターをTILE_VIDEO_SIZEで初期化
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-        # TILE_VIDEO_SIZE を使用
         self.video_writer = cv2.VideoWriter(self.video_path, fourcc, FPS, TILE_VIDEO_SIZE)
         if not self.video_writer.isOpened():
-            print(f"[Error] 動画ファイルのオープンに失敗しました: {self.video_path}")
+            print(f"!!動画ファイルのオープンに失敗しました: {self.video_path}")
 
     def _init_csv(self):
         with open(self.csv_path, 'w', newline='', encoding='utf-8') as f:
@@ -66,21 +72,31 @@ class OutputLogger:
             writer.writerow(["ID", "LabelName", "Confidence"])
 
     def write_video(self, tile_frame):
-        """★4分割合成されたタイル画像を動画に書き込む"""
+        # 4分割合成されたタイル画像を動画に書き込む
         if self.video_writer is None:
             self._init_video()
         
         # 入力画像のサイズチェック（念のため）
         h, w = tile_frame.shape[:2]
         if (w, h) != TILE_VIDEO_SIZE:
-             tile_frame = cv2.resize(tile_frame, TILE_VIDEO_SIZE)
-             
+            tile_frame = cv2.resize(tile_frame, TILE_VIDEO_SIZE)
+
         self.video_writer.write(tile_frame)
 
     def write_csv(self, result_obj):
         with open(self.csv_path, 'a', newline='', encoding='utf-8') as f:
             writer = csv.writer(f)
             writer.writerow(result_obj.to_csv_row())
+
+    # ★新規追加: 推論画像をファイルとして保存するメソッド
+    def write_image(self, cam_name, frame, obj_id):
+        if cam_name in self.img_dirs:
+            # タイムスタンプにミリ秒を追加してファイル名の重複を防ぐ
+            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:-3]
+            # ファイル名: id0001_cam_top_20240101_120000_123.jpg
+            filename = f"id{obj_id:04d}_{cam_name}_{timestamp}.jpg"
+            filepath = os.path.join(self.img_dirs[cam_name], filename)
+            cv2.imwrite(filepath, frame)
 
     def close(self):
         if self.video_writer:
@@ -99,18 +115,14 @@ class ImageProcessor:
         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
         
         # 赤色の範囲（2つの範囲を結合）
-        lower_red1 = np.array([0, 50, 50])
-        upper_red1 = np.array([10, 255, 255])
-        lower_red2 = np.array([160, 50, 50])
+        lower_red1 = np.array([0, 60, 50])
+        upper_red1 = np.array([35, 255, 255])
+        lower_red2 = np.array([160, 60, 50])
         upper_red2 = np.array([180, 255, 255])
-
-        H_LOW = np.array([10, 40, 120])
-        H_HIGH = np.array([179, 255, 255])
         
-        #mask1 = cv2.inRange(hsv, lower_red1, upper_red1)
-        #mask2 = cv2.inRange(hsv, lower_red2, upper_red2)
-        #mask = mask1 + mask2
-        mask = cv2.inRange(hsv, H_LOW, H_HIGH)
+        mask1 = cv2.inRange(hsv, lower_red1, upper_red1)
+        mask2 = cv2.inRange(hsv, lower_red2, upper_red2)
+        mask = cv2.bitwise_or(mask1, mask2)
         
         # モルフォロジー処理（ノイズ除去と結合）
         kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
@@ -118,7 +130,6 @@ class ImageProcessor:
         mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel, iterations=2)
         
         # 接続成分の解析
-        # ★バグ修正: 戻り値を4つに変更
         num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(mask)
         
         if num_labels <= 1: # 背景のみ
@@ -135,6 +146,22 @@ class ImageProcessor:
         
         if max_index == -1 or max_area < 500: # 面積が小さすぎる場合は無視
             return None
+
+        # ==========================================
+        # 追加：見切れ判定（画像端の接触チェック）
+        # ==========================================
+        height, width = frame.shape[:2]
+        stat = stats[max_index]
+        x, y, w, h, area = stat
+        
+        # 画像の端からの許容ピクセル数（マージン）
+        # ギリギリを許容しない場合は 5〜10 程度に設定します。
+        margin = 5
+        
+        # 左端、上端、右端、下端のいずれかがマージン領域に入っていれば「見切れ」とみなす
+        if (x <= margin) or (y <= margin) or ((x + w) >= (width - margin)) or ((y + h) >= (height - margin)):
+            return None  # 見切れている場合は未検出扱いにする
+        # ==========================================
         
         # 結果を辞書で返す
         mx, my = centroids[max_index]
@@ -187,7 +214,7 @@ class YoloDetector:
         self.empty_frames_count = 0
         self.MAX_EMPTY_FRAMES = 8       # 4台のカメラ×2サイクル分連続で未検出なら「完全に画面外」とみなす
 
-        # ★追加：カメラフレーム同期用のバッファ
+        # カメラフレーム同期用のバッファ
         self.frame_buffer = {
             'cam_top': None,
             'cam_under': None,
@@ -204,7 +231,7 @@ class YoloDetector:
         if found:
             self.empty_frames_count = 0
         else:
-            self.empty_frames_count = min(self.empty_frames_count + 1, 100)
+            self.empty_frames_count = min(self.empty_frames_count + 1, 1000)
         
         finalized_result = None
 
@@ -223,9 +250,9 @@ class YoloDetector:
             # GUI用にはリサイズ画像を用意
             output_frame = cv2.resize(frame, (YOLO_IMG_SIZE, YOLO_IMG_SIZE))
             
-            # ★追加：処理済みフレームをバッファに保存（保存処理はここで行わない）
+            # 処理済みフレームをバッファに保存（保存処理はここで行わない）
             self._buffer_frame(cam_name, output_frame)
-            # ★バグ修正：戻り値を3つにする
+            # 戻り値を3つにする
             return output_frame, YoloResult(actual_obj_id, "None", 0.0), finalized_result
         
         # 中心判定とクロップ
@@ -239,7 +266,7 @@ class YoloDetector:
         results = self.model.track(input_img_resized, persist=True, verbose=False, conf=CONF_THRESHOLD, tracker="bytetrack.yaml")
         annotated_frame = results[0].plot()
         
-        # ★追加：アノテーション済みフレームをバッファに保存
+        # アノテーション済みフレームをバッファに保存
         self._buffer_frame(cam_name, annotated_frame)
         
         best_result = self._parse_results(results, cam_name, actual_obj_id, found)
@@ -247,6 +274,10 @@ class YoloDetector:
         # 推論結果が有効ならバッファに追加（ここではまだCSVに書かない）
         if best_result.label_name != "None":
             self.current_detections.append(best_result)
+
+        # ★新規追加: サクランボ検出時に画像を保存
+        # 今回の条件（found = True）を通ってきた場合、推論後の annotated_frame を保存する
+        self.logger.write_image(cam_name, annotated_frame, actual_obj_id)
 
         return annotated_frame, best_result, finalized_result
 
@@ -257,7 +288,7 @@ class YoloDetector:
         return YoloResult(obj_id, "None", 0.0)
 
     # ==========================================================
-    # ★追加：フレーム同期とタイル合成メソッド
+    # フレーム同期とタイル合成メソッド
     # ==========================================================
     def _buffer_frame(self, cam_name, frame):
         """各カメラの処理済みフレームをバッファに溜める"""
@@ -276,14 +307,14 @@ class YoloDetector:
             self._clear_buffer()
 
     def _create_tile_frame(self):
-        """★バッファのフレームを指定配置で合成する"""
+        """バッファのフレームを指定配置で合成する"""
         # 配置に従ってフレームを取得
         v_tl = self.frame_buffer['cam_inside']      # 左上
-        v_bl = self.frame_buffer['cam_under']    # 左下
-        v_tr = self.frame_buffer['cam_outside']   # 右上
-        v_br = self.frame_buffer['cam_top']  # 右下
+        v_bl = self.frame_buffer['cam_under']       # 左下
+        v_tr = self.frame_buffer['cam_outside']     # 右上
+        v_br = self.frame_buffer['cam_top']         # 右下
         
-        # 合成ロジック (左側縦結合、右側縦結合、最後に横結合)
+        # 合成ロジック
         h_left = np.vstack((v_tl, v_bl))
         h_right = np.vstack((v_tr, v_br))
         tile_image = np.hstack((h_left, h_right))
@@ -302,7 +333,7 @@ class YoloDetector:
             best_overall = max(self.current_detections, key=lambda x: x.confidence)
             self.logger.write_csv(best_overall)
         
-        # ★追加：もしバッファにフレームが残っていたら、最後のタイルを作って書き込む（同期は無視）
+        # もしバッファにフレームが残っていたら、最後のタイルを作って書き込む（同期は無視）
         if any(f is not None for f in self.frame_buffer.values()):
             # Noneのフレームを真っ黒な画像で埋めて合成
             black_img = np.zeros((YOLO_IMG_SIZE, YOLO_IMG_SIZE, 3), dtype=np.uint8)

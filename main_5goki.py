@@ -3,21 +3,19 @@
 # -------------------------------------------------
 import sys
 import requests
-import random
 import cv2
 
 from PySide6.QtWidgets import QApplication
 from PySide6.QtCore import Slot, Qt, QRunnable, QThreadPool, QTimer
 from PySide6.QtGui import QKeyEvent, QImage, QPixmap
 
-# デザインファイルを読み込む
+# GUIモジュール
 import module_gui
 
 # 制御モジュール
 import module_patlite as p_ctr
 import module_relay as r_ctr
 import module_cameras_5goki as cam_ctr
-#import module_yolo_csv as yolo_ctr
 import module_yolo_csv as yolo_ctr
 
 RPI_IP_ADDRESS = "192.168.2.1"
@@ -126,7 +124,7 @@ class MainWindow(module_gui.MainWindowUI):
             self.close()
 
         # YOLO初期化・一度だけロード
-        self.detector = yolo_ctr.YoloDetector("C:/gamo/yolo_v1/runs/detect/train7/weights/best.pt")
+        self.detector = yolo_ctr.YoloDetector("Trained_Models/best.pt")
 
         # --- 表示同期の設定 ---
         DELAY_TIME_SEC = 2.5
@@ -163,6 +161,7 @@ class MainWindow(module_gui.MainWindowUI):
             if frame is not None:
                 # ★戻り値を3つ(annotated_frame, result, finalized_result)で受け取るように修正
                 annotated_frame, result, finalized_result = self.detector.evaluate_frame(frame, controller.name, self.current_id)
+                #print(f"[{controller.name}] result: {result}, finalized: {finalized_result}")
 
                 # ★もしサクランボが画面から出て最終結果が確定していたら、GUIとパトライトを更新する
                 if finalized_result is not None:
@@ -298,8 +297,8 @@ class MainWindow(module_gui.MainWindowUI):
                 self.history_data.pop(0)
 
             # 確認用ログ
-            #_, color_name = pattern
-            #print(f"Latest History: | ID: {record['id']:03} | 判定結果: {record['result']}({color_name}) | 信頼度: {record['conf']} % |")
+            _, color_name = pattern
+            print(f"Latest History: | ID: {record['id']:03} | 判定結果: {record['result']}({color_name}) | 信頼度: {record['conf']} % |")
 
             # 画面更新
             self.update_history_display()

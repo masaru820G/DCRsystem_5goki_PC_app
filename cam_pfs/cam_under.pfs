@@ -1,7 +1,7 @@
 # {05D8C294-F295-4dfb-9D01-096BD04049F4}
 # GenApi persistence file (version 3.5.0)
 # Device = Basler::UsbCameraParams -- Basler USB3Vision camera interface -- Device version = 1.0.0 -- Product GUID = 71351C50-4DDC-4D3B-BDF7-0D1539FEFD30 -- Product version GUID = 7A2A19ED-1A6E-4B1A-85E5-33691192EDF2
-GainRaw	{GainSelector=All}	32
+GainRaw	{GainSelector=All}	46
 GainSelector	All
 GainAuto	{GainSelector=All}	Off
 GainSelector	All
@@ -12,10 +12,10 @@ GainSelector	All
 BlackLevelRaw	{BlackLevelSelector=All}	0
 BlackLevelSelector	All
 GammaRaw	1000
-Width	480
-Height	480
-OffsetX	320
-OffsetY	234
+Width	560
+Height	560
+OffsetX	406
+OffsetY	230
 BinningHorizontalMode	Average
 BinningHorizontal	1
 BinningVerticalMode	Average
@@ -27,8 +27,8 @@ BslColorSpaceMode	sRGB
 TestPattern	Off
 SensorShutterMode	Global
 OverlapMode	On
-BslImmediateTriggerMode	Off
-ExposureTimeRaw	327
+BslImmediateTriggerMode	On
+ExposureTimeRaw	300
 ExposureAuto	Off
 AutoExposureTimeLowerLimitRaw	100
 AutoExposureTimeUpperLimitRaw	100000
@@ -41,15 +41,15 @@ TriggerSelector	FrameStart
 ExposureMode	Timed
 AcquisitionFramePeriodRaw	50000
 LightSourcePreset	Off
-BalanceRatioRaw	{BalanceRatioSelector=Red}	86
+BalanceRatioRaw	{BalanceRatioSelector=Red}	85
 BalanceRatioRaw	{BalanceRatioSelector=Green}	64
-BalanceRatioRaw	{BalanceRatioSelector=Blue}	97
+BalanceRatioRaw	{BalanceRatioSelector=Blue}	86
 BalanceRatioSelector	Red
 BalanceWhiteAuto	Off
-BslHueValue	2
-BslSaturationValueRaw	2397
+BslHueValue	-3
+BslSaturationValueRaw	2234
 ContrastEnhancementRaw	0
-BslContrastMode	SCurve
+BslContrastMode	Linear
 BslBrightnessRaw	0
 BslContrastRaw	0
 DefectPixelCorrectionMode	On

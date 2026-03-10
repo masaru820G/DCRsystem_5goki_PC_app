@@ -11,6 +11,7 @@ cam_video/
 evaluated_csv/
 evaluated_videos/
 Trained_Models/
+evaluated_images/
 
 # Virtual environments
 .venv
