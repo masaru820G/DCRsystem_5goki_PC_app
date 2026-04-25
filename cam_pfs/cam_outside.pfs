@@ -1,7 +1,7 @@
 # {05D8C294-F295-4dfb-9D01-096BD04049F4}
 # GenApi persistence file (version 3.5.0)
 # Device = Basler::UsbCameraParams -- Basler USB3Vision camera interface -- Device version = 1.0.0 -- Product GUID = 71351C50-4DDC-4D3B-BDF7-0D1539FEFD30 -- Product version GUID = FC0336C9-679E-437C-B17C-BCC6AD6D6677
-GainRaw	{GainSelector=All}	32
+GainRaw	{GainSelector=All}	35
 GainSelector	All
 GainAuto	{GainSelector=All}	Off
 GainSelector	All
@@ -13,10 +13,10 @@ BlackLevelRaw	{BlackLevelSelector=All}	0
 BlackLevelSelector	All
 GammaRaw	1000
 BslColorSpaceMode	sRGB
-Width	480
-Height	480
-OffsetX	344
-OffsetY	240
+Width	540
+Height	540
+OffsetX	318
+OffsetY	124
 BinningHorizontalMode	Average
 BinningHorizontal	1
 BinningVerticalMode	Average
@@ -28,7 +28,7 @@ TestPattern	Off
 SensorShutterMode	Global
 OverlapMode	On
 BslImmediateTriggerMode	Off
-ExposureTimeRaw	354
+ExposureTimeRaw	390
 ExposureAuto	Off
 AutoExposureTimeLowerLimitRaw	100
 AutoExposureTimeUpperLimitRaw	100000
@@ -41,17 +41,17 @@ TriggerSelector	FrameStart
 ExposureMode	Timed
 AcquisitionFramePeriodRaw	50000
 LightSourcePreset	Off
-BalanceRatioRaw	{BalanceRatioSelector=Red}	86
+BalanceRatioRaw	{BalanceRatioSelector=Red}	80
 BalanceRatioRaw	{BalanceRatioSelector=Green}	64
-BalanceRatioRaw	{BalanceRatioSelector=Blue}	98
+BalanceRatioRaw	{BalanceRatioSelector=Blue}	91
 BalanceRatioSelector	Red
 BalanceWhiteAuto	Off
-BslHueValue	0
-BslSaturationValueRaw	1328
+BslHueValue	-4
+BslSaturationValueRaw	2044
 ContrastEnhancementRaw	0
-BslContrastMode	SCurve
+BslContrastMode	Linear
 BslBrightnessRaw	0
-BslContrastRaw	14
+BslContrastRaw	0
 PgiMode	On_AutomaticNoiseReduction
 SharpnessEnhancementRaw	0
 DefectPixelCorrectionMode	On
@@ -88,7 +88,7 @@ AutoFunctionROIOffsetY	{AutoFunctionROISelector=ROI2}	0
 AutoFunctionROISelector	ROI1
 DeviceLinkThroughputLimitMode	{DeviceLinkSelector=0}	On
 DeviceLinkSelector	0
-DeviceLinkThroughputLimit	{DeviceLinkSelector=0}	163000000
+DeviceLinkThroughputLimit	{DeviceLinkSelector=0}	30000000
 DeviceLinkThroughputLimit	{DeviceLinkSelector=1}	0
 DeviceLinkSelector	0
 DeviceIndicatorMode	Active

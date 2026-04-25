@@ -18,12 +18,12 @@ RATIO = 1.0                 # 基本補正係数
 MICRO_STATUS = 32           # マイクロステップ設定
 class RelayState(IntEnum):
     """リレーの状態定義"""
-    OPEN = 0   # 回路を開く
-    CLOSE = 1  # 回路を閉じる
+    CLOSE = 0  # 回路を閉じる
+    OPEN = 1   # 回路を開く
 class RelayChannel(IntEnum):
     """チャンネル定義"""
-    REMOVE = 0    # 被害果除去用
-    TRANSPORT = 1 # 健全果運搬用
+    TRANSPORT = 0 # 健全果運搬用
+    REMOVE = 1    # 被害果除去用
 
 SPEED_MAP = {
     1: 0.0010,  # 回転遅い
@@ -107,8 +107,8 @@ class RelayController():
         sec = t_one_pulse * step_one_rotation * 2   # ギア比が2なので
 
         # チャンネルごとに待機時間を調整してセット
-        remove_channel_wait = sec * (90 / 360)
-        transport_channel_wait = sec * (135 / 360)
+        remove_channel_wait = sec * (80 / 360)
+        transport_channel_wait = sec * (125 / 360)
         #print(delay)
         #print(remove_channel_wait)
         #print(transport_channel_wait)

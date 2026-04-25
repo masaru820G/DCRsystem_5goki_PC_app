@@ -10,6 +10,11 @@ wheels/
 cam_video/
 evaluated_csv/
 evaluated_videos/
+Trained_Models/
+evaluated_images/
 
 # Virtual environments
 .venv
+module_yolo_csv.py
+module_yolo_csv2.py
+module_yolo_csv4.py

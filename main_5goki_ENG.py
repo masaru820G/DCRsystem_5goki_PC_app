@@ -10,13 +10,13 @@ from PySide6.QtCore import Slot, Qt, QRunnable, QThreadPool, QTimer
 from PySide6.QtGui import QKeyEvent, QImage, QPixmap
 
 # GUIモジュール
-import module_gui
+import module_gui_ENG
 
 # 制御モジュール
 import module_patlite as p_ctr
 import module_relay as r_ctr
 import module_cameras_5goki as cam_ctr
-import module_yolo_csv as yolo_ctr
+import module_yolo_csv3 as yolo_ctr
 
 RPI_IP_ADDRESS = "192.168.2.1"
 RPI_PORT = 5000
@@ -27,8 +27,9 @@ SPEED_MAP = {
     5: 0.0006, # 基準 (デフォルト)
     6: 0.0005, 7: 0.0004, 8: 0.0003, 9: 0.0002, 10: 0.0001
 }
-BASE_DELAY_SEC = 2.5  # スピード5の時の基準遅延時間
-BASE_PULSE_DELAY = 0.0006
+# ステッピングモータの設定変数
+RATIO = 1.0                 # 基本補正係数
+MICRO_STATUS = 32           # マイクロステップ設定
 
 # ==========================================================
 # 汎用バックグラウンドタスク用クラス
@@ -49,7 +50,7 @@ class TaskWorker(QRunnable):
 # ==========================================================
 # スタートアップウィンドウ
 # ==========================================================
-class StartupWindow(module_gui.StartupWindowUI):
+class StartupWindow(module_gui_ENG.StartupWindowUI):
     def __init__(self):
         super().__init__()
         self.button_start.clicked.connect(self.launch_main)
@@ -61,7 +62,7 @@ class StartupWindow(module_gui.StartupWindowUI):
 # ==========================================================
 # サブウィンドウ
 # ==========================================================
-class SubWindow(module_gui.SubWindowUI):
+class SubWindow(module_gui_ENG.SubWindowUI):
     # --- 戻るボタン押下イベント -------------------
     def __init__(self, parent_window, initial_speed):
         super().__init__()
@@ -113,10 +114,14 @@ class SubWindow(module_gui.SubWindowUI):
 # ==========================================================
 # メインウィンドウ
 # ==========================================================
-class MainWindow(module_gui.MainWindowUI):
+class MainWindow(module_gui_ENG.MainWindowUI):
     def __init__(self):
         super().__init__()
         self.thread_pool = QThreadPool()    # スレッド管理プールの作成
+
+        # 1. データの初期化を最初に行う（重要！）
+        self.history_data = []
+        self.current_id = 1
 
         # 各デバイス接続処理
         self.patlite = p_ctr.PatliteController()
@@ -132,13 +137,19 @@ class MainWindow(module_gui.MainWindowUI):
             print("!!カメラの接続に失敗しました")
             self.close()
 
+        # カウント用辞書の初期化
+        self.detection_counts = {
+            "healthy": 0, "twin": 0, "unripe": 0, "mold": 0, "stemcrack": 0, "birddamage": 0
+        }
+        self.update_stats_display() # 初期表示
+        
         # YOLO初期化・一度だけロード
         self.detector = yolo_ctr.YoloDetector("Trained_Models/best2.pt")
 
         # スピード初期値設定とカメラ遅延の初期適用
         self.saved_speed = 5
         self.update_camera_delays(self.saved_speed)
-        
+
         self.cameras.start_all_get_frame()
 
         # イベント接続
@@ -146,21 +157,12 @@ class MainWindow(module_gui.MainWindowUI):
         self.button_setting.clicked.connect(self.on_setting_button)
         self.button_power.clicked.connect(self.on_power_bottom)
 
-        self.history_data = []
-        self.current_id = 1
-
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_video_feeds)
         self.timer.start(50) # 50msごとに更新 (約20fps)
 
     # --- カメラ表示遅延をスピードに合わせて更新する関数 ---
     def update_camera_delays(self, speed):
-        """
-        物理的な回転速度（パルス間隔）に比例して、カメラのバッファ遅延秒数を動的に変更します。
-        式: 現在の遅延 = 基準遅延(2.5s) * (現在のパルス間隔 / 基準パルス間隔)
-        """
-        RATIO = 1.0                 # 基本補正係数
-        MICRO_STATUS = 32           # マイクロステップ設定
         # 計算ロジック
         delay = SPEED_MAP[speed]
         t_one_pulse = delay * 2
@@ -175,7 +177,6 @@ class MainWindow(module_gui.MainWindowUI):
             # 下流側のカメラのみ遅延を適用
             if controller.name in ["cam_under", "cam_inside"]:
                 controller.delay_seconds = dynamic_delay
-                # もしカメラコントローラ側にバッファクリア等の必要があればここで呼ぶ
 
     # --- カメラ映像をGUIに反映する関数 ---
     def update_video_feeds(self):
@@ -184,11 +185,11 @@ class MainWindow(module_gui.MainWindowUI):
             # タイマー更新時
             frame = controller.get_current_frame()  # 最新フレームを取得 (BGR形式)
             if frame is not None:
-                # ★戻り値を3つ(annotated_frame, result, finalized_result)で受け取るように修正
+                # 戻り値を3つ(annotated_frame, result, finalized_result)で受け取るように修正
                 annotated_frame, result, finalized_result = self.detector.evaluate_frame(frame, controller.name, self.current_id)
                 #print(f"[{controller.name}] result: {result}, finalized: {finalized_result}")
 
-                # ★もしサクランボが画面から出て最終結果が確定していたら、GUIとパトライトを更新する
+                # もしサクランボが画面から出て最終結果が確定していたら、GUIとパトライトを更新する
                 if finalized_result is not None:
                     self.process_final_result(finalized_result)
 
@@ -269,11 +270,16 @@ class MainWindow(module_gui.MainWindowUI):
         channel = None
         display_name = ""
 
+        # 該当するクラスのカウントをアップ
+        if disease_name in self.detection_counts:
+            self.detection_counts[disease_name] += 1
+            self.update_stats_display() # 統計表示を更新
+
         if disease_name == "healthy":
             pattern = p_ctr.LedPattern.WHITE
             channel = r_ctr.RelayChannel.TRANSPORT
-            display_name = "健全果"
-            self.label_dam.setText("健全果")
+            display_name = "healthy"
+            self.label_dam.setText("healthy")
             self.label_dam.setStyleSheet("""
                 font-family: "Meiryo"; font-size: 30px; font-weight: bold;
                 color: #000000; background-color: #FFFFFF;
@@ -283,8 +289,8 @@ class MainWindow(module_gui.MainWindowUI):
         elif disease_name == "twin":
             pattern = p_ctr.LedPattern.RED
             channel = r_ctr.RelayChannel.REMOVE
-            display_name = "双子果"
-            self.label_dam.setText("双子果")
+            display_name = "twin"
+            self.label_dam.setText("twin")
             self.label_dam.setStyleSheet("""
                 font-family: "Meiryo"; font-size: 30px; font-weight: bold;
                 color: #000000; background-color: #FF0000;
@@ -294,8 +300,8 @@ class MainWindow(module_gui.MainWindowUI):
         elif disease_name == "unripe":
             pattern = p_ctr.LedPattern.YELLOW
             channel = r_ctr.RelayChannel.REMOVE
-            display_name = "未熟果"
-            self.label_dam.setText("未熟果")
+            display_name = "unripe"
+            self.label_dam.setText("unripe")
             self.label_dam.setStyleSheet("""
                 font-family: "Meiryo"; font-size: 30px; font-weight: bold;
                 color: #000000; background-color: #FFFF00;
@@ -305,8 +311,8 @@ class MainWindow(module_gui.MainWindowUI):
         elif disease_name == "mold":
             pattern = p_ctr.LedPattern.VIOLET
             channel = r_ctr.RelayChannel.REMOVE
-            display_name = "カビ"
-            self.label_dam.setText("カビ")
+            display_name = "mold"
+            self.label_dam.setText("mold")
             self.label_dam.setStyleSheet("""
                 font-family: "Meiryo"; font-size: 30px; font-weight: bold;
                 color: #000000; background-color: #EE82EE;
@@ -316,8 +322,8 @@ class MainWindow(module_gui.MainWindowUI):
         elif disease_name == "stemcrack":
             pattern = p_ctr.LedPattern.BLUE
             channel = r_ctr.RelayChannel.REMOVE
-            display_name = "果梗裂果"
-            self.label_dam.setText("果梗裂果")
+            display_name = "stemcrack"
+            self.label_dam.setText("stemcrack")
             self.label_dam.setStyleSheet("""
                 font-family: "Meiryo"; font-size: 30px; font-weight: bold;
                 color: #000000; background-color: #0000FF;
@@ -327,8 +333,8 @@ class MainWindow(module_gui.MainWindowUI):
         elif disease_name == "birddamage":
             pattern = p_ctr.LedPattern.SKY
             channel = r_ctr.RelayChannel.REMOVE
-            display_name = "鳥害"
-            self.label_dam.setText("鳥害")
+            display_name = "birddamage"
+            self.label_dam.setText("birddamage")
             self.label_dam.setStyleSheet("""
                 font-family: "Meiryo"; font-size: 30px; font-weight: bold;
                 color: #000000; background-color: #00ffff;
@@ -341,25 +347,30 @@ class MainWindow(module_gui.MainWindowUI):
             # デバイス制御 (非同期)
             self.run_in_background(self.patlite.set_color, pattern)
             self.run_in_background(self.relay.move, channel, self.saved_speed)
-
-            # 履歴データの追加処理 (キー入力時のランダム値ではなく、実際のYOLO結果を使用)
+            # YOLO履歴データの追加処理
             record = {
                 "id": obj_id,
                 "result": display_name,
                 "conf": confidence_percent
             }
             self.history_data.append(record)
-
             # 古いものを削除
             if len(self.history_data) > 10:
                 self.history_data.pop(0)
-
             # 確認用ログ
             _, color_name = pattern
             print(f"Latest History: | ID: {record['id']:03} | 判定結果: {record['result']}({color_name}) | 信頼度: {record['conf']} % |")
-
             # 画面更新
             self.update_history_display()
+
+    # --- 統計情報を更新する関数 (例) ---
+    def update_stats_display(self):
+        # もし label_stats というラベルがGUIにある場合
+        if hasattr(self, 'label_stats'):
+            total = len(self.history_data)
+            healthy_count = sum(1 for item in self.history_data if "healthy" in item['result'])
+            # 統計情報をラベルにセット
+            self.label_stats.setText("Waiting for input...")  # 初期表示
 
     # --- 履歴表示を更新する関数 (HTMLテーブル版) -------------------
     def update_history_display(self):
@@ -368,20 +379,20 @@ class MainWindow(module_gui.MainWindowUI):
         for item in self.history_data:
             # IDの作成 (半角->全角変換)
             id_txt = f"{item['id']:03}".translate(str.maketrans("0123456789", "０１２３４５６７８９"))
-
             # 結果の作成 (空白除去 & 色判定)
             raw_text = item['result']
-            if "健全果" in raw_text:
+
+            if "healthy" in raw_text:
                 color_code = "#ffffff"
-            elif "双子果" in raw_text:
+            elif "twin" in raw_text:
                 color_code = "#FF0000"
-            elif "未熟果" in raw_text:
+            elif "unripe" in raw_text:
                 color_code = "#FFFF00"
-            elif "カビ" in raw_text:
+            elif "mold" in raw_text:
                 color_code = "#EE82EE"
-            elif "果梗裂果" in raw_text:
+            elif "stemcrack" in raw_text:
                 color_code = "#0000FF"
-            elif "鳥害" in raw_text:
+            elif "birddamage" in raw_text:
                 color_code = "#00ffff"
 
             # 信頼度の作成
@@ -396,6 +407,30 @@ class MainWindow(module_gui.MainWindowUI):
             </tr>
             """
 
+        c = self.detection_counts
+        # 2列3行のテーブル形式で表示する例
+        stats_html = f"""
+        <html>
+        <body style="background-color:#000000; color:#00FF00; font-family:'MS Gothic';">
+            <table width="100%" style="border: none;">
+                <tr>
+                    <td>healthy: {c['healthy']}</td>
+                    <td>twin: {c['twin']}</td>
+                </tr>
+                <tr>
+                    <td>unripe: {c['unripe']}</td>
+                    <td>mold: {c['mold']}</td>
+                </tr>
+                <tr>
+                    <td>stemcrack: {c['stemcrack']}</td>
+                    <td>birddamage: {c['birddamage']}</td>
+                </tr>
+            </table>
+        </body>
+        </html>
+        """
+        self.label_stats.setText(stats_html)
+        
         # 全体のHTMLを組み立てる
         full_html = f"""
         <html>
@@ -423,8 +458,8 @@ class MainWindow(module_gui.MainWindowUI):
             <table cellspacing="0">
                 <tr>
                     <th width="20%">ＩＤ</th>
-                    <th width="40%">結果</th>
-                    <th width="40%">信頼度</th>
+                    <th width="40%">result</th>
+                    <th width="40%">confidence</th>
                 </tr>
                 {rows_html}
             </table>
@@ -442,7 +477,7 @@ class MainWindow(module_gui.MainWindowUI):
             # 動作開始時に最新のスピードで遅延を再計算（念のため）
             self.update_camera_delays(self.saved_speed)
 
-            self.label_toggle_status.setText("動作中")
+            self.label_toggle_status.setText("Running")
             self.label_toggle_status.setStyleSheet("""
                 font-family: "Meiryo"; font-size: 30px; font-weight: bold;
                 color: #32CD32; qproperty-alignment: 'AlignCenter';
@@ -452,7 +487,7 @@ class MainWindow(module_gui.MainWindowUI):
             print(f"\nSpeed settings saved to Main: {self.saved_speed}")
             self.run_in_background(self.__async_raspi_request, "/rotate")
         else:
-            self.label_toggle_status.setText("停止中")
+            self.label_toggle_status.setText("Stopped")
             self.label_toggle_status.setStyleSheet("""
                 font-family: "Meiryo"; font-size: 30px; font-weight: bold;
                 color: #888888; qproperty-alignment: 'AlignCenter';

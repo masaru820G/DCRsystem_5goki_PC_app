@@ -28,7 +28,7 @@ TestPattern	Off
 SensorShutterMode	Global
 OverlapMode	On
 BslImmediateTriggerMode	Off
-ExposureTimeRaw	400
+ExposureTimeRaw	385
 ExposureAuto	Off
 AutoExposureTimeLowerLimitRaw	10
 AutoExposureTimeUpperLimitRaw	1000000
@@ -47,11 +47,11 @@ BalanceRatioRaw	{BalanceRatioSelector=Blue}	100
 BalanceRatioSelector	Red
 BalanceWhiteAuto	Off
 BslHueValue	0
-BslSaturationValueRaw	1848
+BslSaturationValueRaw	2000
 ContrastEnhancementRaw	0
-BslContrastMode	SCurve
+BslContrastMode	Linear
 BslBrightnessRaw	0
-BslContrastRaw	0
+BslContrastRaw	1
 PgiMode	On_ManualNoiseReduction
 DenoisingRaw	69
 SharpnessEnhancementRaw	0
@@ -87,9 +87,9 @@ AutoFunctionROISelector	ROI1
 AutoFunctionROIOffsetY	{AutoFunctionROISelector=ROI1}	0
 AutoFunctionROIOffsetY	{AutoFunctionROISelector=ROI2}	0
 AutoFunctionROISelector	ROI1
-DeviceLinkThroughputLimitMode	{DeviceLinkSelector=0}	Off
+DeviceLinkThroughputLimitMode	{DeviceLinkSelector=0}	On
 DeviceLinkSelector	0
-DeviceLinkThroughputLimit	{DeviceLinkSelector=0}	163000000
+DeviceLinkThroughputLimit	{DeviceLinkSelector=0}	30000000
 DeviceLinkThroughputLimit	{DeviceLinkSelector=1}	0
 DeviceLinkSelector	0
 DeviceIndicatorMode	Active
