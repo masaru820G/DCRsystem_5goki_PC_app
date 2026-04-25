@@ -13,9 +13,9 @@ BlackLevelRaw	{BlackLevelSelector=All}	0
 BlackLevelSelector	All
 GammaRaw	1000
 BslColorSpaceMode	sRGB
-Width	534
-Height	534
-OffsetX	320
+Width	540
+Height	540
+OffsetX	318
 OffsetY	124
 BinningHorizontalMode	Average
 BinningHorizontal	1
@@ -88,7 +88,7 @@ AutoFunctionROIOffsetY	{AutoFunctionROISelector=ROI2}	0
 AutoFunctionROISelector	ROI1
 DeviceLinkThroughputLimitMode	{DeviceLinkSelector=0}	On
 DeviceLinkSelector	0
-DeviceLinkThroughputLimit	{DeviceLinkSelector=0}	163000000
+DeviceLinkThroughputLimit	{DeviceLinkSelector=0}	30000000
 DeviceLinkThroughputLimit	{DeviceLinkSelector=1}	0
 DeviceLinkSelector	0
 DeviceIndicatorMode	Active

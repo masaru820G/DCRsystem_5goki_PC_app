@@ -83,9 +83,9 @@ AutoFunctionROISelector	ROI1
 AutoFunctionROIOffsetY	{AutoFunctionROISelector=ROI1}	0
 AutoFunctionROIOffsetY	{AutoFunctionROISelector=ROI2}	0
 AutoFunctionROISelector	ROI1
-DeviceLinkThroughputLimitMode	{DeviceLinkSelector=0}	Off
+DeviceLinkThroughputLimitMode	{DeviceLinkSelector=0}	On
 DeviceLinkSelector	0
-DeviceLinkThroughputLimit	{DeviceLinkSelector=0}	163000000
+DeviceLinkThroughputLimit	{DeviceLinkSelector=0}	30000000
 DeviceLinkThroughputLimit	{DeviceLinkSelector=1}	0
 DeviceLinkSelector	0
 DeviceIndicatorMode	Active

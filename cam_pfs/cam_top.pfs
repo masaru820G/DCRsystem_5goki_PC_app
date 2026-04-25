@@ -13,10 +13,10 @@ BlackLevelRaw	{BlackLevelSelector=All}	0
 BlackLevelSelector	All
 GammaRaw	1000
 BslColorSpaceMode	sRGB
-Width	640
-Height	640
+Width	720
+Height	720
 OffsetX	206
-OffsetY	26
+OffsetY	128
 BinningHorizontalMode	Average
 BinningHorizontal	1
 BinningVerticalMode	Average

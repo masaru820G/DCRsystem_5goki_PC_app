@@ -10,17 +10,17 @@ from ultralytics import YOLO
 # ==========================================================
 # 動作設定
 USE_CROP = False                # ダイナミッククロップを使用するか
-CENTER_THRESHOLD_X = 100          # クロップを発動する中心からの許容ピクセル幅
+CENTER_THRESHOLD_X = 100        # クロップを発動する中心からの許容ピクセル幅
 
 # YOLO設定
-MODEL_PATH = "Trained_Models/best.pt"
+MODEL_PATH = "Trained_Models/best2.pt"
 YOLO_IMG_SIZE = 640             # 推論およびアノテーション画像のサイズ
-CONF_THRESHOLD = 0.6            # 推論の信頼度閾値
+CONF_THRESHOLD = 0.8            # 推論の信頼度閾値
 
 # 保存設定
 SAVE_DIR_VIDEO = "evaluated_videos"                 # タイル動画の保存先
 SAVE_DIR_CSV = "evaluated_csv"                      # CSVの保存先
-SAVE_DIR_IMG = "evaluated_images"                   # ★新規追加: 画像の保存先親フォルダ
+SAVE_DIR_IMG = "evaluated_images"                   # 画像の保存先親フォルダ
 FPS = 20.0                                          # 保存動画のFPS
 TILE_VIDEO_SIZE = (YOLO_IMG_SIZE, YOLO_IMG_SIZE)    # (横, 縦)
 
@@ -44,7 +44,7 @@ class OutputLogger:
         os.makedirs(SAVE_DIR_VIDEO, exist_ok=True)
         os.makedirs(SAVE_DIR_CSV, exist_ok=True)
 
-        # ★新規追加: カメラごとの画像保存フォルダ作成
+        # カメラごとの画像保存フォルダ作成
         self.img_dirs = {}
         cam_names = ['cam_top', 'cam_under', 'cam_inside', 'cam_outside']
         for cam in cam_names:
@@ -88,7 +88,7 @@ class OutputLogger:
             writer = csv.writer(f)
             writer.writerow(result_obj.to_csv_row())
 
-    # ★新規追加: 推論画像をファイルとして保存するメソッド
+    # 推論画像をファイルとして保存するメソッド
     def write_image(self, cam_name, frame, obj_id):
         if cam_name in self.img_dirs:
             # タイムスタンプにミリ秒を追加してファイル名の重複を防ぐ
@@ -147,9 +147,7 @@ class ImageProcessor:
         if max_index == -1 or max_area < 500: # 面積が小さすぎる場合は無視
             return None
 
-        # ==========================================
-        # 追加：見切れ判定（画像端の接触チェック）
-        # ==========================================
+        # 見切れ判定（画像端の接触チェック）
         height, width = frame.shape[:2]
         stat = stats[max_index]
         x, y, w, h, area = stat
@@ -161,8 +159,7 @@ class ImageProcessor:
         # 左端、上端、右端、下端のいずれかがマージン領域に入っていれば「見切れ」とみなす
         if (x <= margin) or (y <= margin) or ((x + w) >= (width - margin)) or ((y + h) >= (height - margin)):
             return None  # 見切れている場合は未検出扱いにする
-        # ==========================================
-        
+
         # 結果を辞書で返す
         mx, my = centroids[max_index]
         return {
@@ -207,8 +204,14 @@ class YoloDetector:
     def __init__(self, model_path=MODEL_PATH):
         print(f"YOLOモデル {model_path} をロード中...")
         self.model = YOLO(model_path)
+
+        # 初回推論ラグの解消処理
+        print("YOLOのウォームアップ（事前推論）を実行しています...")
+        dummy_img = np.zeros((YOLO_IMG_SIZE, YOLO_IMG_SIZE, 3), dtype=np.uint8)        # 推論サイズと同じ真っ黒なダミー画像を作成
+        self.model.predict(dummy_img, verbose=False)                                   # 強制的に1回推論させて、メモリ確保などの初期化を完了させる
+        print("ウォームアップ完了。")
+
         self.logger = OutputLogger()
-        
         self.current_cherry_id = 1
         self.current_detections = []    # 1つのサクランボに対する複数カメラ/フレームの検出結果を溜める
         self.empty_frames_count = 0
@@ -237,7 +240,15 @@ class YoloDetector:
 
         if self.empty_frames_count == self.MAX_EMPTY_FRAMES:
             if len(self.current_detections) > 0:
-                best_overall = max(self.current_detections, key=lambda x: x.confidence)
+                # --- 被害クラス優先ロジック ---
+                damaged_detections = [d for d in self.current_detections if d.label_name not in ["healthy", "None"]]       # 'healthy' および 'None' 以外のラベル（被害果）を抽出
+                if damaged_detections:
+                    # 1つでも被害が検出されていれば、被害果の中で最も信頼度が高いものを採用
+                    best_overall = max(damaged_detections, key=lambda x: x.confidence)
+                else:
+                    # 被害がない場合（全てhealthyの場合）は、全体から最大信頼度を採用
+                    best_overall = max(self.current_detections, key=lambda x: x.confidence)
+
                 self.logger.write_csv(best_overall)
                 finalized_result = best_overall
                 self.current_cherry_id += 1
@@ -264,7 +275,37 @@ class YoloDetector:
 
         # YOLO推論
         results = self.model.track(input_img_resized, persist=True, verbose=False, conf=CONF_THRESHOLD, tracker="bytetrack.yaml")
-        annotated_frame = results[0].plot()
+        # annotated_frame = results[0].plot()  <-- これを使わず、元の画像をコピーして直接描画する
+        annotated_frame = input_img_resized.copy()
+
+        if len(results[0].boxes) > 0:
+            for box in results[0].boxes:
+                # 1. クラス名と座標を取得
+                class_id = int(box.cls[0])
+                label_name = self.model.names[class_id]
+                confidence = float(box.conf[0])
+                x1, y1, x2, y2 = map(int, box.xyxy[0])
+
+                # 2. クラス名に応じて色を設定 (BGR形式)
+                if label_name == "birddamage":
+                    box_color = (255, 255, 0)    # 空色
+                elif label_name == "healthy":
+                    box_color = (255, 255, 255)      # 白色
+                elif label_name == "mold":
+                    box_color = (238, 130, 238)    # 紫色
+                elif label_name == "stemcrack":
+                    box_color = (255, 0, 0)      # 青色
+                elif label_name == "twin":
+                    box_color = (0, 0, 255)      # 赤色
+                elif label_name == "unripe":
+                    box_color = (0, 255, 255)      # 黄色
+
+                # 3. バウンディングボックスを描画
+                cv2.rectangle(annotated_frame, (x1, y1), (x2, y2), box_color, 5)
+
+                # 4. ラベルを描画
+                text = f"{label_name} {confidence:.2f}"
+                cv2.putText(annotated_frame, text, (x1, max(y1 - 10, 0)), cv2.FONT_HERSHEY_SIMPLEX, 1, box_color, 5)
         
         # アノテーション済みフレームをバッファに保存
         self._buffer_frame(cam_name, annotated_frame)
@@ -275,8 +316,7 @@ class YoloDetector:
         if best_result.label_name != "None":
             self.current_detections.append(best_result)
 
-        # ★新規追加: サクランボ検出時に画像を保存
-        # 今回の条件（found = True）を通ってきた場合、推論後の annotated_frame を保存する
+        # found = Trueを通ってきた場合、推論後の annotated_frame を保存する
         self.logger.write_image(cam_name, annotated_frame, actual_obj_id)
 
         return annotated_frame, best_result, finalized_result
@@ -330,7 +370,13 @@ class YoloDetector:
     def close(self):
         # プログラム終了時にバッファに残っていれば強制的に出力
         if len(self.current_detections) > 0:
-            best_overall = max(self.current_detections, key=lambda x: x.confidence)
+            # --- 被害優先ロジックをここにも適用 ---
+            damaged_detections = [d for d in self.current_detections if d.label_name not in ["healthy", "None"]]
+            if damaged_detections:
+                best_overall = max(damaged_detections, key=lambda x: x.confidence)
+            else:
+                best_overall = max(self.current_detections, key=lambda x: x.confidence)
+                
             self.logger.write_csv(best_overall)
         
         # もしバッファにフレームが残っていたら、最後のタイルを作って書き込む（同期は無視）
