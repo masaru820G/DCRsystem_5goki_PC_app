@@ -43,15 +43,15 @@ class YoloResult:
 # ==========================================================
 class OutputLogger:
     def __init__(self):
-        os.makedirs(SAVE_DIR_VIDEO, exist_ok=True)
+        # os.makedirs(SAVE_DIR_VIDEO, exist_ok=True)
         os.makedirs(SAVE_DIR_CSV, exist_ok=True)
 
         self.img_dirs = {}
         cam_names = ['cam_top', 'cam_under', 'cam_inside', 'cam_outside']
-        for cam in cam_names:
-            path = os.path.join(SAVE_DIR_IMG, cam)
-            os.makedirs(path, exist_ok=True)
-            self.img_dirs[cam] = path
+        # for cam in cam_names:
+        #     path = os.path.join(SAVE_DIR_IMG, cam)
+        #     os.makedirs(path, exist_ok=True)
+        #     self.img_dirs[cam] = path
         
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         self.video_path = os.path.join(SAVE_DIR_VIDEO, f"eval_{timestamp}.mp4")
@@ -70,12 +70,13 @@ class OutputLogger:
             writer.writerow(["ID", "LabelName", "Confidence", "Camera"])
 
     def write_video(self, tile_frame):
-        if self.video_writer is None:
-            self._init_video()
-        h, w = tile_frame.shape[:2]
-        if (w, h) != TILE_VIDEO_SIZE:
-            tile_frame = cv2.resize(tile_frame, TILE_VIDEO_SIZE)
-        self.video_writer.write(tile_frame)
+        # if self.video_writer is None:
+        #     self._init_video()
+        # h, w = tile_frame.shape[:2]
+        # if (w, h) != TILE_VIDEO_SIZE:
+        #     tile_frame = cv2.resize(tile_frame, TILE_VIDEO_SIZE)
+        # self.video_writer.write(tile_frame)
+        pass
 
     def write_csv(self, result_obj):
         with open(self.csv_path, 'a', newline='', encoding='utf-8') as f:
@@ -83,11 +84,12 @@ class OutputLogger:
             writer.writerow(result_obj.to_csv_row())
 
     def write_image(self, cam_name, frame, obj_id):
-        if cam_name in self.img_dirs:
-            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:-3]
-            filename = f"{cam_name}_{timestamp}_id{obj_id:04d}.jpg"
-            filepath = os.path.join(self.img_dirs[cam_name], filename)
-            cv2.imwrite(filepath, frame)
+        # if cam_name in self.img_dirs:
+        #     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:-3]
+        #     filename = f"{cam_name}_{timestamp}_id{obj_id:04d}.jpg"
+        #     filepath = os.path.join(self.img_dirs[cam_name], filename)
+        #     cv2.imwrite(filepath, frame)
+        pass
 
     def close(self):
         if self.video_writer:
@@ -217,8 +219,8 @@ class YoloDetector:
                 if best_overall:
                     self.logger.write_csv(best_overall)
                     finalized_result = best_overall
-                    for cam, data in self.best_frames_per_id.items():
-                        self.logger.write_image(cam, data['frame'], best_overall.id)
+                    # for cam, data in self.best_frames_per_id.items():
+                    #     self.logger.write_image(cam, data['frame'], best_overall.id)
                 
                 self.current_cherry_id += 1
                 self.current_detections = []
@@ -273,7 +275,7 @@ class YoloDetector:
     def _buffer_frame(self, cam_name, frame):
         self.frame_buffer[cam_name] = frame
         if all(f is not None for f in self.frame_buffer.values()):
-            self.logger.write_video(self._create_tile_frame())
+            # self.logger.write_video(self._create_tile_frame())
             for key in self.frame_buffer.keys(): self.frame_buffer[key] = None
 
     def _create_tile_frame(self):
@@ -286,6 +288,6 @@ class YoloDetector:
             best_overall = self._resolve_best_result(self.current_detections)
             if best_overall:
                 self.logger.write_csv(best_overall)
-                for cam, data in self.best_frames_per_id.items():
-                    self.logger.write_image(cam, data['frame'], best_overall.id)
+                # for cam, data in self.best_frames_per_id.items():
+                #     self.logger.write_image(cam, data['frame'], best_overall.id)
         self.logger.close()

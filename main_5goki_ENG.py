@@ -4,6 +4,7 @@
 import sys
 import requests
 import cv2
+import time
 
 from PySide6.QtWidgets import QApplication
 from PySide6.QtCore import Slot, Qt, QRunnable, QThreadPool, QTimer
@@ -112,6 +113,54 @@ class SubWindow(module_gui_ENG.SubWindowUI):
         self.close()
 
 # ==========================================================
+# カメラエラーウィンドウ (追加)
+# ==========================================================
+class CameraErrorWindow(module_gui_ENG.CameraErrorWindowUI):
+    def __init__(self, parent_window, lost_cam_name):
+        super().__init__(lost_cam_name)
+        self.parent_window = parent_window
+        self.button_continue.clicked.connect(self.attempt_recovery)
+
+    def attempt_recovery(self):
+        print("\n>>> 復旧プロセス開始...")
+        # ボタンを一時無効化して連打を防ぐ
+        self.button_continue.setEnabled(False)
+        self.label_cams.setText("Closing all connections...")
+        QApplication.processEvents() # UI更新
+
+        # 1. メインウィンドウ側のカメラリストも一度明示的にストップさせる
+        self.parent_window.cameras.stop_all_get_frame()
+        time.sleep(1.0) # USBバスの安定待ち
+
+        # 2. カメラの再スキャンと初期化 (module_cameras側のgc.collectが走る)
+        if self.parent_window.cameras.init_cameras():
+            connected_names = [c.name for c in self.parent_window.cameras.controllers]
+            required_names = [name for _, name in cam_ctr.TARGET_SERIALS]
+            missing = set(required_names) - set(connected_names)
+            
+            if not missing and len(connected_names) == 4:
+                print(">>> 4台全てのカメラが正常に再オープンされました。")
+                
+                # シグナル再接続
+                for controller in self.parent_window.cameras.controllers:
+                    controller.signals.connection_lost.connect(self.parent_window.handle_camera_error)
+                
+                self.parent_window.cameras.start_all_get_frame()
+                self.parent_window.run_in_background(self.parent_window.relay.stop)
+                
+                self.parent_window.timer.start(50)
+                self.close()
+            else:
+                msg = f"Incomplete: {len(connected_names)}/4 cams.\n"
+                if missing:
+                    msg += f"Missing: {', '.join(missing)}"
+                self.label_cams.setText(msg)
+                self.button_continue.setEnabled(True)
+        else:
+            self.label_cams.setText("Failed to open any cameras.\nCheck USB cables.")
+            self.button_continue.setEnabled(True)
+
+# ==========================================================
 # メインウィンドウ
 # ==========================================================
 class MainWindow(module_gui_ENG.MainWindowUI):
@@ -136,6 +185,10 @@ class MainWindow(module_gui_ENG.MainWindowUI):
         if not self.cameras.init_cameras():
             print("!!カメラの接続に失敗しました")
             self.close()
+
+        # カメラエラーハンドラの設定
+        for controller in self.cameras.controllers:
+            controller.signals.connection_lost.connect(self.handle_camera_error)
 
         # カウント用辞書の初期化
         self.detection_counts = {
@@ -239,6 +292,24 @@ class MainWindow(module_gui_ENG.MainWindowUI):
     def on_setting_button(self):
         self.settings_window = SubWindow(parent_window=self, initial_speed=self.saved_speed)
         self.settings_window.show()
+
+    # --- カメラエラー発生時の処理 (追加) ---
+    @Slot(str)
+    def handle_camera_error(self, cam_name):
+        print(f"!![Emergency Stop] カメラ '{cam_name}' の接続が切れました。")
+        
+        # 1. GUIのトグルをOFFにする (これによりPiの回転、リレー、パトライトが停止する)
+        self.toggle_switch.setChecked(False)
+        
+        # 2. タイマー（推論と表示更新）を停止
+        self.timer.stop()
+
+        # 3. 他のカメラの取得も完全に止める
+        self.cameras.stop_all_get_frame()
+
+        # 4. エラーウィンドウのポップアップ
+        self.error_win = CameraErrorWindow(self, cam_name)
+        self.error_win.show()
 
     # --- 電源ボタン押下イベント -------------------
     @Slot()

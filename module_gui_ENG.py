@@ -286,6 +286,48 @@ class SubWindowUI(QWidget):
         self.button_back.move(back_x, back_y)
         self.button_back.setCursor(Qt.PointingHandCursor)
 
+# ==========================================
+# カメラエラーウィンドウUI
+# ==========================================
+class CameraErrorWindowUI(QWidget):
+    def __init__(self, error_cams_text):
+        super().__init__()
+        self.setWindowTitle("Camera Connection Error")
+        self.setFixedSize(500, 350)
+        self.setStyleSheet("background-color: #2B2B2B;")
+        self.setWindowModality(Qt.ApplicationModal)
+
+        layout = QVBoxLayout()
+
+        self.label_title = QLabel("CRITICAL ERROR", self)
+        self.label_title.setStyleSheet("color: #FF0000; font-size: 28px; font-weight: bold;")
+        self.label_title.setAlignment(Qt.AlignCenter)
+        layout.addWidget(self.label_title)
+
+        self.label_msg = QLabel("Connection lost with following camera(s):", self)
+        self.label_msg.setStyleSheet("color: white; font-size: 16px;")
+        self.label_msg.setAlignment(Qt.AlignCenter)
+        layout.addWidget(self.label_msg)
+
+        self.label_cams = QLabel(error_cams_text, self)
+        self.label_cams.setStyleSheet("color: #FFA500; font-size: 20px; font-weight: bold; border: 1px solid #555; padding: 10px;")
+        self.label_cams.setAlignment(Qt.AlignCenter)
+        layout.addWidget(self.label_cams)
+
+        self.label_instruction = QLabel("Please check cables and click Continue.", self)
+        self.label_instruction.setStyleSheet("color: #AAA; font-size: 14px;")
+        self.label_instruction.setAlignment(Qt.AlignCenter)
+        layout.addWidget(self.label_instruction)
+
+        self.button_continue = QPushButton("CONTINUE", self)
+        self.button_continue.setFixedSize(200, 60)
+        self.button_continue.setStyleSheet("""
+            background-color: #0078D7; color: white; font-size: 20px; font-weight: bold; border-radius: 10px;
+        """)
+        self.button_continue.setCursor(Qt.PointingHandCursor)
+        layout.addWidget(self.button_continue, alignment=Qt.AlignCenter)
+
+        self.setLayout(layout)
 
 # ==========================================
 # メインウインドウUI

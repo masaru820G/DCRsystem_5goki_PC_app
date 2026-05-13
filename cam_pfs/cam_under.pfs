@@ -1,7 +1,7 @@
 # {05D8C294-F295-4dfb-9D01-096BD04049F4}
 # GenApi persistence file (version 3.5.0)
 # Device = Basler::UsbCameraParams -- Basler USB3Vision camera interface -- Device version = 1.0.0 -- Product GUID = 71351C50-4DDC-4D3B-BDF7-0D1539FEFD30 -- Product version GUID = 7A2A19ED-1A6E-4B1A-85E5-33691192EDF2
-GainRaw	{GainSelector=All}	46
+GainRaw	{GainSelector=All}	32
 GainSelector	All
 GainAuto	{GainSelector=All}	Off
 GainSelector	All
@@ -15,7 +15,7 @@ GammaRaw	1000
 Width	560
 Height	560
 OffsetX	406
-OffsetY	230
+OffsetY	180
 BinningHorizontalMode	Average
 BinningHorizontal	1
 BinningVerticalMode	Average
@@ -28,7 +28,7 @@ TestPattern	Off
 SensorShutterMode	Global
 OverlapMode	On
 BslImmediateTriggerMode	On
-ExposureTimeRaw	300
+ExposureTimeRaw	570
 ExposureAuto	Off
 AutoExposureTimeLowerLimitRaw	100
 AutoExposureTimeUpperLimitRaw	100000
@@ -41,13 +41,13 @@ TriggerSelector	FrameStart
 ExposureMode	Timed
 AcquisitionFramePeriodRaw	50000
 LightSourcePreset	Off
-BalanceRatioRaw	{BalanceRatioSelector=Red}	85
+BalanceRatioRaw	{BalanceRatioSelector=Red}	84
 BalanceRatioRaw	{BalanceRatioSelector=Green}	64
-BalanceRatioRaw	{BalanceRatioSelector=Blue}	86
+BalanceRatioRaw	{BalanceRatioSelector=Blue}	97
 BalanceRatioSelector	Red
 BalanceWhiteAuto	Off
-BslHueValue	-3
-BslSaturationValueRaw	2234
+BslHueValue	-2
+BslSaturationValueRaw	2766
 ContrastEnhancementRaw	0
 BslContrastMode	Linear
 BslBrightnessRaw	0
@@ -83,9 +83,9 @@ AutoFunctionROISelector	ROI1
 AutoFunctionROIOffsetY	{AutoFunctionROISelector=ROI1}	0
 AutoFunctionROIOffsetY	{AutoFunctionROISelector=ROI2}	0
 AutoFunctionROISelector	ROI1
-DeviceLinkThroughputLimitMode	{DeviceLinkSelector=0}	On
+DeviceLinkThroughputLimitMode	{DeviceLinkSelector=0}	Off
 DeviceLinkSelector	0
-DeviceLinkThroughputLimit	{DeviceLinkSelector=0}	30000000
+DeviceLinkThroughputLimit	{DeviceLinkSelector=0}	163000000
 DeviceLinkThroughputLimit	{DeviceLinkSelector=1}	0
 DeviceLinkSelector	0
 DeviceIndicatorMode	Active
