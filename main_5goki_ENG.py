@@ -233,27 +233,34 @@ class MainWindow(module_gui_ENG.MainWindowUI):
 
     # --- カメラ映像をGUIに反映する関数 ---
     def update_video_feeds(self):
-        # トグルスイッチがOFFの場合は推論や更新を行わないならここで return してもOKです
+        # 1. トグルスイッチがON（Running）かどうかを確認
+        is_running = self.toggle_switch.isChecked()
+
         for controller in self.cameras.controllers:
-            # タイマー更新時
             frame = controller.get_current_frame()  # 最新フレームを取得 (BGR形式)
             if frame is not None:
-                # 戻り値を3つ(annotated_frame, result, finalized_result)で受け取るように修正
-                annotated_frame, result, finalized_result = self.detector.evaluate_frame(frame, controller.name, self.current_id)
-                #print(f"[{controller.name}] result: {result}, finalized: {finalized_result}")
+                if is_running:
+                    # 【動作中】推論を実行し、アノテーション（枠など）付きのフレームを取得
+                    annotated_frame, result, finalized_result = self.detector.evaluate_frame(
+                        frame, controller.name, self.current_id
+                    )
 
-                # もしサクランボが画面から出て最終結果が確定していたら、GUIとパトライトを更新する
-                if finalized_result is not None:
-                    self.process_final_result(finalized_result)
+                    # サクランボが画面から出て最終結果が確定していたら、GUIとパトライトを更新
+                    if finalized_result is not None:
+                        self.process_final_result(finalized_result)
+                    
+                    display_frame = annotated_frame
+                else:
+                    # 【停止中】YOLO推論をスキップし、生の映像をそのまま表示（プレビューモード）
+                    display_frame = frame
 
-                # 描画用には annotated_frame を使用
-                rgb_image = cv2.cvtColor(annotated_frame, cv2.COLOR_BGR2RGB)
+                # 描画用処理（display_frame を使用）
+                rgb_image = cv2.cvtColor(display_frame, cv2.COLOR_BGR2RGB)
                 h, w, ch = rgb_image.shape
                 bytes_per_line = ch * w
                 qt_image = QImage(rgb_image.data, w, h, bytes_per_line, QImage.Format_RGB888)
 
-                # ラベルのサイズに合わせてリサイズ (アスペクト比保持)
-                # controller.name に応じて貼り付けるラベルを決める
+                # 表示先のラベルを決定
                 target_label = None
                 if controller.name == "cam_inside":
                     target_label = self.cam_in

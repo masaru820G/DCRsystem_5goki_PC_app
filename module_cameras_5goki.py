@@ -108,22 +108,27 @@ class CameraController(QObject):
         print(f"キャプチャ開始: {self.name}")
 
     def _capture_loop(self):
+        retry_count = 0
+        max_retries = 3  # 最大リトライ回数
+
         while self.is_capturing:
-            if not self.camera or not self.camera.IsGrabbing():
-                # グラビングが停止した＝接続が切れたと判断
-                print(f"!![Lost] {self.name}: Camera stopped grabbing.")
+            # カメラオブジェクト自体が失われているか、グラビング状態でない場合のチェック
+            if not self.camera:
                 self.signals.connection_lost.emit(self.name)
                 break
+
             try:
+                # タイムアウトを5秒に設定して画像を取得
                 grab_result = self.camera.RetrieveResult(5000, pylon.TimeoutHandling_ThrowException)
+                
                 if grab_result.GrabSucceeded():
+                    # 取得成功：リトライカウントをリセット
+                    retry_count = 0
                     converted = self.converter.Convert(grab_result)
                     frame_bgr = converted.GetArray()
 
-                    # フレームの更新処理
                     with self.lock:
                         delay_frames = int(self.delay_seconds * FPS)
-                        
                         if delay_frames > 0:
                             self.frame_queue.append(frame_bgr.copy())
                             if len(self.frame_queue) > delay_frames:
@@ -134,14 +139,33 @@ class CameraController(QObject):
                             self.latest_frame = frame_bgr.copy()
                             self.frame_queue.clear()
                 else:
-                    print(f"!![Lost] {self.name}: Grab failed.")
+                    # GrabSucceeded が False の場合は例外を投げてリトライ処理へ
+                    raise Exception("Grab result unsuccessful")
+                
+                grab_result.Release()
+
+            except Exception as e:
+                # エラー発生時の自己修復試行
+                retry_count += 1
+                print(f"!![Recovering] {self.name}: Attempt {retry_count}/{max_retries} - {e}")
+                
+                if retry_count >= max_retries:
+                    # 全リトライ失敗：ここで初めてメイン画面にエラーを通知
+                    print(f"!![Fatal] {self.name}: Self-recovery failed.")
                     self.signals.connection_lost.emit(self.name)
                     break
-                grab_result.Release()
-            except Exception as e:
-                print(f"!!Loop Error ({self.name}): {e}")
-                self.signals.connection_lost.emit(self.name) # エラー時に通知
-                break
+                
+                # 内部的な再開試行
+                try:
+                    if self.camera.IsGrabbing():
+                        self.camera.StopGrabbing()
+                    time.sleep(1.0) # バスが落ち着くのを待機
+                    self.camera.StartGrabbing(pylon.GrabStrategy_LatestImageOnly)
+                except:
+                    # 再開に失敗してもループを回して次のリトライへ
+                    pass
+
+        print(f"スレッド終了: {self.name}")
 
     def stop_capture(self):
         self.is_capturing = False
