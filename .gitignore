@@ -16,9 +16,6 @@ evaluated_images/
 # Virtual environments
 .venv
 
-# workspace
-.agents/
-
 # file
 hsv_config.json
 hsv_histogram.png
