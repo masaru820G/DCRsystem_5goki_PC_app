@@ -64,11 +64,9 @@ DCRsystem_5goki_PC_app/
 │
 ├── main_5goki_JP.py           # メインエントリポイント（日本語版）
 ├── main_5goki_ENG.py          # メインエントリポイント（英語版）
-├── main_5goki.py              # メインエントリポイント（旧版）
 │
 ├── module_gui_JP.py           # GUI レイアウト定義（日本語版）
 ├── module_gui_ENG.py          # GUI レイアウト定義（英語版）
-├── module_gui.py              # GUI レイアウト定義（旧版）
 │
 ├── module_cameras_5goki.py    # Basler カメラ制御モジュール
 ├── module_relay.py            # リレーボード制御モジュール
