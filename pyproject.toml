@@ -1,7 +1,7 @@
 [project]
 name = "dcrsystem-5goki-pc-app"
 version = "0.1.0"
-description = "Add your description here"
+description = "サクランボ病害果除去システム（DCRsystem 5号機）の PC 制御アプリケーション"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
