@@ -7,6 +7,8 @@ wheels/
 *.egg-info
 
 #directory
+.agents/
+.agents/workflows/
 cam_video/
 evaluated_csv/
 evaluated_videos/
