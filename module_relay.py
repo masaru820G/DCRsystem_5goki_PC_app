@@ -18,12 +18,12 @@ RATIO = 1.0                 # 基本補正係数
 MICRO_STATUS = 32           # マイクロステップ設定
 class RelayState(IntEnum):
     """リレーの状態定義"""
-    OPEN = 0   # 回路を開く
-    CLOSE = 1  # 回路を閉じる
+    CLOSE = 0  # 回路を閉じる
+    OPEN = 1   # 回路を開く
 class RelayChannel(IntEnum):
     """チャンネル定義"""
-    REMOVE = 0    # 被害果除去用
-    TRANSPORT = 1 # 健全果運搬用
+    TRANSPORT = 0 # 健全果運搬用
+    REMOVE = 1    # 被害果除去用
 
 SPEED_MAP = {
     1: 0.0010,  # 回転遅い
@@ -49,6 +49,11 @@ class RelayController():
 
     # --- リレーボード初期化 + 接続関数 -------------------
     def init(self):
+        # すでに接続されている場合は、正常終了を返す（二重オープンエラー防止）
+        if self.is_connected and self.ydci is not None:
+            print(">>> リレーボードは既に接続されています。")
+            return True
+        
         # DLLのロード
         pf = platform.system()
         if pf == 'Windows':
@@ -60,19 +65,22 @@ class RelayController():
         else:
             print(f"サポートされていないOSです: {pf}")
             return False
-
-        # ボード識別スイッチが0のボードをオープン
+        
         result_board = self.ydci.YdciOpen(self.board_id, b'RLY-P4/2/0B-UBT', ctypes.byref(self.board_id), YDCI_OPEN_NORMAL)
+        # ボード識別スイッチが0のボードをオープン
         if result_board != YDCI_RESULT_SUCCESS:
+            # すでに開いている場合のエラーコード（例：-838860781等）でも接続済みならTrue
+            if result_board == -838860781:
+                print(">>> リレーボードは既に他のプロセスまたは以前の処理で開かれています。")
+                self.is_connected = True
+                return True
             print(f'オープンできません。エラーコード: {result_board}')
-            self.ydci = None
             return False
-        print(f">>> リレーボード({self.board_id.value})接続成功")
+        
         self.is_connected = True
+        print(f">>> リレーボード({self.board_id.value})接続成功")
 
-        # 初期状態設定:
-        self._set_state(RelayChannel.REMOVE, RelayState.CLOSE)       # 被害果除去用Ch（0）をClose
-        self._set_state(RelayChannel.TRANSPORT, RelayState.CLOSE)    # 健全果運搬用Ch（1）をClose
+        self.stop() # 初期状態として全OFF
         return True
 
     # --- リレーの状態を設定する関数 -------------------
@@ -107,8 +115,8 @@ class RelayController():
         sec = t_one_pulse * step_one_rotation * 2   # ギア比が2なので
 
         # チャンネルごとに待機時間を調整してセット
-        remove_channel_wait = sec * (90 / 360)
-        transport_channel_wait = sec * (135 / 360)
+        remove_channel_wait = sec * (80 / 360)
+        transport_channel_wait = sec * (125 / 360)
         #print(delay)
         #print(remove_channel_wait)
         #print(transport_channel_wait)
@@ -135,11 +143,13 @@ class RelayController():
 
     # --- リレー停止関数 -------------------
     def stop(self):
-        if not self.is_connected:
+        if not self.is_connected or self.ydci is None:
             print("警告: ボード未接続のため停止動作をスキップします。")
             return
+        # 接続を解除せず、状態だけを「安全（OFF）」にする
         self._set_state(RelayChannel.REMOVE, RelayState.CLOSE)
         self._set_state(RelayChannel.TRANSPORT, RelayState.CLOSE)
+        print(">>> 全リレーをOFF（停止）にしました。")
 
     # --- リレーボード接続終了関数 -------------------
     def close(self):

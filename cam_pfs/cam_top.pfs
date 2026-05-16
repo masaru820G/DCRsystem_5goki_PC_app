@@ -13,10 +13,10 @@ BlackLevelRaw	{BlackLevelSelector=All}	0
 BlackLevelSelector	All
 GammaRaw	1000
 BslColorSpaceMode	sRGB
-Width	560
-Height	560
-OffsetX	270
-OffsetY	168
+Width	720
+Height	720
+OffsetX	206
+OffsetY	128
 BinningHorizontalMode	Average
 BinningHorizontal	1
 BinningVerticalMode	Average
@@ -28,7 +28,7 @@ TestPattern	Off
 SensorShutterMode	Global
 OverlapMode	On
 BslImmediateTriggerMode	Off
-ExposureTimeRaw	400
+ExposureTimeRaw	420
 ExposureAuto	Off
 AutoExposureTimeLowerLimitRaw	100
 AutoExposureTimeUpperLimitRaw	100000
@@ -41,15 +41,15 @@ TriggerSelector	FrameStart
 ExposureMode	Timed
 AcquisitionFramePeriodRaw	50000
 LightSourcePreset	Off
-BalanceRatioRaw	{BalanceRatioSelector=Red}	82
+BalanceRatioRaw	{BalanceRatioSelector=Red}	80
 BalanceRatioRaw	{BalanceRatioSelector=Green}	64
 BalanceRatioRaw	{BalanceRatioSelector=Blue}	93
 BalanceRatioSelector	Red
 BalanceWhiteAuto	Off
-BslHueValue	0
-BslSaturationValueRaw	1133
+BslHueValue	-7
+BslSaturationValueRaw	2234
 ContrastEnhancementRaw	0
-BslContrastMode	SCurve
+BslContrastMode	Linear
 BslBrightnessRaw	0
 BslContrastRaw	0
 PgiMode	On_AutomaticNoiseReduction

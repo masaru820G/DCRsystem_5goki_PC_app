@@ -20,28 +20,32 @@ MARGIN_Y = 10                           # 画面の余白y
 #WINDOW_W, WINDOW_H = 1280, 720          # 1920×1080 拡大/縮小 150%
 WINDOW_W, WINDOW_H = 1706, 1066          # 2560×1600 拡大/縮小 150%
 
-VIEW_CAM_SIZE_W = int(WINDOW_W * 0.34) // 10 * 10     # カメラ表示サイズw (10の倍数に丸める)
-VIEW_CAM_SIZE_H = (WINDOW_H - MARGIN_Y * 3) / 2       # カメラ表示サイズh
+VIEW_CAM_SIZE_W = int(WINDOW_W * 0.34) // 10 * 10               # カメラ表示サイズw (10の倍数に丸める)
+VIEW_CAM_SIZE_H = (WINDOW_H - MARGIN_Y * 3) / 2                 # カメラ表示サイズh
 
-ICON_SETTING_SIZE = int(WINDOW_W * 0.1) // 10 * 10    # 設定アイコンサイズ
-ICON_POWER_SIZE = int(WINDOW_W * 0.1) // 10 * 10      # 電源アイコンサイズ
+ICON_SETTING_SIZE = int(WINDOW_W * 0.1) // 10 * 10              # 設定アイコンサイズ
+ICON_POWER_SIZE = int(WINDOW_W * 0.1) // 10 * 10                # 電源アイコンサイズ
 
-LABEL_HISTORY_SIZE_W = int(WINDOW_W * 0.3) // 10 * 10                  # 履歴ラベルの幅
-LABEL_HISTORY_SIZE_H = int(WINDOW_H * 0.4) // 10 * 10     # 履歴ラベルの高さ
+LABEL_HISTORY_SIZE_W = int(WINDOW_W * 0.3) // 10 * 10           # 履歴ラベルの幅
+LABEL_HISTORY_SIZE_H = int(WINDOW_H * 0.3) // 10 * 10           # 履歴ラベルの高さ
 
-LABEL_DAMAGE_SIZE_W = int(WINDOW_W * 0.3) // 10 * 10                      # 病害名表示ラベルサイズw
-LABEL_DAMAGE_SIZE_H = int(WINDOW_H * 0.1) // 10 * 10                      # 病害名表示ラベルサイズh
+LABEL_DAMAGE_SIZE_W = int(WINDOW_W * 0.3) // 10 * 10            # 病害名表示ラベルサイズw
+LABEL_DAMAGE_SIZE_H = int(WINDOW_H * 0.1) // 10 * 10            # 病害名表示ラベルサイズh
 
-LABEL_MANAGEMENT_SIZE_W = int(WINDOW_W * 0.2) // 10 * 10               # 「システム管理」ラベルサイズw
-LABEL_MANAGEMENT_SIZE_H = int(WINDOW_H * 0.1) // 10 * 10                # 「システム管理」ラベルサイズh
+LABEL_STATS_SIZE_W = LABEL_HISTORY_SIZE_W                       # 統計用表示ラベルサイズw
+LABEL_STATS_SIZE_H = int(WINDOW_H * 0.12) // 10 * 10            # 統計用表示ラベルサイズh
 
-SWITCH_TOGGLE_SIZE_W = int(WINDOW_W * 0.2) // 10 * 10                  # トグルスイッチサイズw
-SWITCH_TOGGLE_SIZE_H = SWITCH_TOGGLE_SIZE_W / 2                  # トグルスイッチサイズh
-LABEL_TOGGLE_SIZE_W = SWITCH_TOGGLE_SIZE_W                   # トグルスイッチ状態表示ラベルサイズw
-LABEL_TOGGLE_SIZE_H = LABEL_TOGGLE_SIZE_W / 7                    # トグルスイッチ状態表示ラベルサイズh
+LABEL_MANAGEMENT_SIZE_W = int(WINDOW_W * 0.2) // 10 * 10        # 「Management」ラベルサイズw
+LABEL_MANAGEMENT_SIZE_H = int(WINDOW_H * 0.1) // 10 * 10        # 「Management」ラベルサイズh
 
-BASE_X = (MARGIN_X + VIEW_CAM_SIZE_W) * 2   # システム管理エリア基準x
-BASE_Y = MARGIN_Y * 2 + VIEW_CAM_SIZE_H     # システム管理エリア基準y
+SWITCH_TOGGLE_SIZE_W = int(WINDOW_W * 0.2) // 10 * 10           # トグルスイッチサイズw
+SWITCH_TOGGLE_SIZE_H = SWITCH_TOGGLE_SIZE_W / 2                 # トグルスイッチサイズh
+
+LABEL_TOGGLE_SIZE_W = SWITCH_TOGGLE_SIZE_W                      # トグルスイッチ状態表示ラベルサイズw
+LABEL_TOGGLE_SIZE_H = LABEL_TOGGLE_SIZE_W / 7                   # トグルスイッチ状態表示ラベルサイズh
+
+BASE_X = (MARGIN_X + VIEW_CAM_SIZE_W) * 2                       # システム管理エリア基準x
+BASE_Y = MARGIN_Y * 2 + VIEW_CAM_SIZE_H                         # システム管理エリア基準y
 
 # --- サブウインドウゾーン ----------------------------
 SUB_WINDOW_W, SUB_WINDOW_H = 600, 500   # サブウインドウサイズ
@@ -66,10 +70,17 @@ qproperty-alignment: 'AlignCenter';
 """
 LABEL_HISTORY_STYLE = """
 font-family: "MS Gothic";
-font-size: 18px; font-weight: bold;
+font-size: 20px; font-weight: bold;
 color: #00FF00; background-color: #000000;
 border: 2px solid #555555; border-radius: 5px;
-qproperty-alignment: 'AlignTop | AlignLeft';;
+qproperty-alignment: 'AlignCenter';
+"""
+LABEL_STATS_STYLE = """
+font-family: "MS Gothic";
+font-size: 20px; font-weight: bold;
+color: #00FF00; background-color: #000000;
+border: 2px solid #555555; border-radius: 5px;
+qproperty-alignment: 'AlignCenter';
 """
 LABEL_DAMAGE_STYLE = """
 font-family: "Meiryo"; font-size: 30px; font-weight: bold;
@@ -212,7 +223,7 @@ class StartupWindowUI(QWidget):
         self.setFixedSize(500, 300)
         self.setStyleSheet("background-color: #CCCCCC;")
 
-        self.label_msg = QLabel("システムを開始しますか？", self)
+        self.label_msg = QLabel("Do you want to start the system?", self)
         self.label_msg.setFixedSize(400, 50)
         self.label_msg.move(50, 50)
         self.label_msg.setStyleSheet("color: black; font-size: 24px; font-weight: bold;")
@@ -275,6 +286,48 @@ class SubWindowUI(QWidget):
         self.button_back.move(back_x, back_y)
         self.button_back.setCursor(Qt.PointingHandCursor)
 
+# ==========================================
+# カメラエラーウィンドウUI
+# ==========================================
+class CameraErrorWindowUI(QWidget):
+    def __init__(self, error_cams_text):
+        super().__init__()
+        self.setWindowTitle("Camera Connection Error")
+        self.setFixedSize(500, 350)
+        self.setStyleSheet("background-color: #2B2B2B;")
+        self.setWindowModality(Qt.ApplicationModal)
+
+        layout = QVBoxLayout()
+
+        self.label_title = QLabel("CRITICAL ERROR", self)
+        self.label_title.setStyleSheet("color: #FF0000; font-size: 28px; font-weight: bold;")
+        self.label_title.setAlignment(Qt.AlignCenter)
+        layout.addWidget(self.label_title)
+
+        self.label_msg = QLabel("Connection lost with following camera(s):", self)
+        self.label_msg.setStyleSheet("color: white; font-size: 16px;")
+        self.label_msg.setAlignment(Qt.AlignCenter)
+        layout.addWidget(self.label_msg)
+
+        self.label_cams = QLabel(error_cams_text, self)
+        self.label_cams.setStyleSheet("color: #FFA500; font-size: 20px; font-weight: bold; border: 1px solid #555; padding: 10px;")
+        self.label_cams.setAlignment(Qt.AlignCenter)
+        layout.addWidget(self.label_cams)
+
+        self.label_instruction = QLabel("Please check cables and click Continue.", self)
+        self.label_instruction.setStyleSheet("color: #AAA; font-size: 14px;")
+        self.label_instruction.setAlignment(Qt.AlignCenter)
+        layout.addWidget(self.label_instruction)
+
+        self.button_continue = QPushButton("CONTINUE", self)
+        self.button_continue.setFixedSize(200, 60)
+        self.button_continue.setStyleSheet("""
+            background-color: #0078D7; color: white; font-size: 20px; font-weight: bold; border-radius: 10px;
+        """)
+        self.button_continue.setCursor(Qt.PointingHandCursor)
+        layout.addWidget(self.button_continue, alignment=Qt.AlignCenter)
+
+        self.setLayout(layout)
 
 # ==========================================
 # メインウインドウUI
@@ -338,18 +391,28 @@ class MainWindowUI(QMainWindow):
         history_x = WINDOW_W - LABEL_HISTORY_SIZE_W - MARGIN_X
         history_y = setting_y + ICON_SETTING_SIZE + MARGIN_Y
 
-        self.label_history = QLabel("Wait for input...", self)
+        self.label_history = QLabel("Waiting for input...", self)
         self.label_history.setFixedSize(LABEL_HISTORY_SIZE_W, LABEL_HISTORY_SIZE_H)
         self.label_history.setStyleSheet(LABEL_HISTORY_STYLE)
         self.label_history.move(history_x, history_y)
 
+        # --- 統計表示エリア (追加) ------------------------------
+        stats_x = history_x
+        stats_y = history_y + LABEL_HISTORY_SIZE_H + MARGIN_Y
+
+        self.label_stats = QLabel("Waiting for input...", self)
+        self.label_stats.setFixedSize(LABEL_STATS_SIZE_W, LABEL_STATS_SIZE_H)
+        self.label_stats.setStyleSheet(LABEL_STATS_STYLE)
+        self.label_stats.move(stats_x, stats_y)
+
         # --- 病害管理エリア ------------------------------
         # 配置座標
         dam_x = WINDOW_W - LABEL_DAMAGE_SIZE_W - MARGIN_X
-        dam_y = history_y + LABEL_HISTORY_SIZE_H + MARGIN_Y
+        #dam_y = history_y + LABEL_HISTORY_SIZE_H + MARGIN_Y
+        dam_y = stats_y + LABEL_STATS_SIZE_H + MARGIN_Y # 統計ラベルの下に配置
 
         # 病害名表示ラベル
-        self.label_dam = QLabel("病害結果", self)
+        self.label_dam = QLabel("Result Class", self)
         self.label_dam.setFixedSize(LABEL_DAMAGE_SIZE_W, LABEL_DAMAGE_SIZE_H)
         self.label_dam.setStyleSheet(LABEL_DAMAGE_STYLE)
         self.label_dam.move(dam_x, dam_y)
@@ -364,7 +427,7 @@ class MainWindowUI(QMainWindow):
         toggle_status_y = toggle_switch_y + SWITCH_TOGGLE_SIZE_H + MARGIN_Y
 
         # システム状態表示ラベル
-        self.label_panel = QLabel("システム管理", self)
+        self.label_panel = QLabel("Management", self)
         self.label_panel.setFixedSize(LABEL_MANAGEMENT_SIZE_W, LABEL_MANAGEMENT_SIZE_H)
         self.label_panel.setStyleSheet(LABEL_MANAGEMENT_STYLE)
         self.label_panel.move(label_management_x, label_management_y)
@@ -375,7 +438,7 @@ class MainWindowUI(QMainWindow):
         self.button_power.setCursor(Qt.PointingHandCursor)
 
         # トグルスイッチ状態表示ラベル
-        self.label_toggle_status = QLabel("停止中", self)
+        self.label_toggle_status = QLabel("Stopped", self)
         self.label_toggle_status.setFixedSize(LABEL_TOGGLE_SIZE_W, LABEL_TOGGLE_SIZE_H)
         self.label_toggle_status.setStyleSheet(LABEL_TOGGLE_STYLE)
         self.label_toggle_status.move(toggle_status_x, toggle_status_y)
