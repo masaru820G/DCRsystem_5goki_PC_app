@@ -9,6 +9,7 @@ wheels/
 #directory
 .agents/
 .agents/workflows/
+.claude/
 cam_video/
 evaluated_csv/
 evaluated_videos/
