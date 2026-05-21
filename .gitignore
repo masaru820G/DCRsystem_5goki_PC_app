@@ -10,18 +10,12 @@ wheels/
 .agents/
 .agents/workflows/
 .claude/
+
 cam_video/
-evaluated_csv/
-evaluated_videos/
-Trained_Models/
 evaluated_images/
+evaluated_videos/
+evaluated_csv/
+Trained_Models/
 
 # Virtual environments
 .venv
-
-# file
-hsv_config.json
-hsv_histogram.png
-module_yolo_csv.py
-module_yolo_csv2.py
-module_yolo_csv4.py
